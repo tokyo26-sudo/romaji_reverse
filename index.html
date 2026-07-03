@@ -45,6 +45,17 @@
     text-transform:uppercase;
     margin-bottom:10px;
   }
+  .version-badge{
+    display:inline-block;
+    margin-left:8px;
+    padding:2px 8px;
+    border:1px solid var(--gold);
+    border-radius:20px;
+    color:var(--gold-bright);
+    font-size:10px;
+    letter-spacing:0.05em;
+    vertical-align:middle;
+  }
   h1{
     font-size:clamp(28px, 5vw, 42px);
     margin:0 0 8px;
@@ -211,7 +222,7 @@
 <div class="wrap">
 
   <header>
-    <div class="eyebrow">Kana → Romaji → Reverse → Kana</div>
+    <div class="eyebrow">Kana → Romaji → Reverse → Kana<span class="version-badge">v0.2</span></div>
     <h1>反転コト<span>ダマ</span>機</h1>
     <div class="sub">ひらがな・カタカナをローマ字にして、まるごとひっくり返して、<br>読めるところまで読み方を組みなおすヨ。</div>
   </header>
@@ -419,6 +430,7 @@
     }
 
     const { romaji, hadUnknown } = kanaToRomaji(val);
+    const directReversed = Array.from(val).reverse().join("");
     const reversed = Array.from(romaji).reverse().join("");
     const { text: kanaResult, hadFallback } = romajiToKana(reversed, outMode);
 
@@ -426,6 +438,10 @@
       <div class="step">
         <div class="step-label">01 入力</div>
         <div class="step-value">${escapeHtml(val)}</div>
+      </div>
+      <div class="step">
+        <div class="step-label">01.5 そのまま反転</div>
+        <div class="step-value result">${escapeHtml(directReversed)}</div>
       </div>
       <div class="step">
         <div class="step-label">02 ローマ字</div>

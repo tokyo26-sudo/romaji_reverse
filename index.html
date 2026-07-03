@@ -190,6 +190,37 @@
     padding:4px 10px;
     border-radius:6px;
   }
+  .mirror-match{
+    color:var(--gold-bright);
+    text-shadow: 0 0 10px rgba(232,200,116,0.55);
+    position:relative;
+  }
+  .mirror-match::after{
+    content:"";
+    position:absolute;
+    left:0; right:0; bottom:-3px;
+    height:2px;
+    background:var(--gold-bright);
+    opacity:0.7;
+  }
+  .palindrome-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    margin-top:10px;
+    font-size:12px;
+    color:#1c1915;
+    background: linear-gradient(90deg, var(--gold), var(--gold-bright));
+    padding:5px 12px;
+    border-radius:20px;
+    font-weight:700;
+    letter-spacing:0.03em;
+    animation: pulseGlow 1.6s ease-in-out infinite;
+  }
+  @keyframes pulseGlow{
+    0%,100%{ box-shadow: 0 0 0 rgba(232,200,116,0); }
+    50%{ box-shadow: 0 0 14px rgba(232,200,116,0.55); }
+  }
   .mirror-divider{
     display:flex;
     align-items:center;
@@ -222,7 +253,7 @@
 <div class="wrap">
 
   <header>
-    <div class="eyebrow">Kana → Romaji → Reverse → Kana<span class="version-badge">v0.2</span></div>
+    <div class="eyebrow">Kana → Romaji → Reverse → Kana<span class="version-badge">v0.3</span></div>
     <h1>反転コト<span>ダマ</span>機</h1>
     <div class="sub">ひらがな・カタカナをローマ字にして、まるごとひっくり返して、<br>読めるところまで読み方を組みなおすヨ。</div>
   </header>
@@ -431,17 +462,21 @@
 
     const { romaji, hadUnknown } = kanaToRomaji(val);
     const directReversed = Array.from(val).reverse().join("");
+    const isFullPalindrome = val.length > 1 && val === directReversed;
+    const mirroredInputHtml = buildMirrorHtml(val);
+    const mirroredReversedHtml = buildMirrorHtml(directReversed);
     const reversed = Array.from(romaji).reverse().join("");
     const { text: kanaResult, hadFallback } = romajiToKana(reversed, outMode);
 
     flowPanel.innerHTML = `
       <div class="step">
         <div class="step-label">01 入力</div>
-        <div class="step-value">${escapeHtml(val)}</div>
+        <div class="step-value">${mirroredInputHtml}</div>
       </div>
       <div class="step">
         <div class="step-label">01.5 そのまま反転</div>
-        <div class="step-value result">${escapeHtml(directReversed)}</div>
+        <div class="step-value result">${mirroredReversedHtml}</div>
+        ${isFullPalindrome ? '<div class="palindrome-badge">✨ コレ回文ダカラ！</div>' : ''}
       </div>
       <div class="step">
         <div class="step-label">02 ローマ字</div>
@@ -464,6 +499,22 @@
     return s.replace(/[&<>"']/g, c => ({
       "&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"
     }[c]));
+  }
+
+  // 自分自身をひっくり返した時、同じ位置になる文字を光らせるヨ
+  function buildMirrorHtml(str){
+    const chars = Array.from(str);
+    const len = chars.length;
+    let html = "";
+    for (let i = 0; i < len; i++){
+      const c = chars[i];
+      const mirrorChar = chars[len - 1 - i];
+      const isMatch = len > 1 && c === mirrorChar;
+      html += isMatch
+        ? `<span class="mirror-match">${escapeHtml(c)}</span>`
+        : escapeHtml(c);
+    }
+    return html;
   }
 
 })();

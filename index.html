@@ -141,6 +141,24 @@
     background:var(--gold);
     color:#1c1915;
   }
+  .checkbox-row{
+    gap:22px;
+  }
+  .checkbox-label{
+    display:flex;
+    align-items:center;
+    gap:8px;
+    font-size:13px;
+    color:var(--text-dim);
+    cursor:pointer;
+    margin:0;
+  }
+  .checkbox-label input[type=checkbox]{
+    width:16px;
+    height:16px;
+    accent-color:var(--gold);
+    cursor:pointer;
+  }
 
   .flow{
     margin-top:8px;
@@ -253,7 +271,7 @@
 <div class="wrap">
 
   <header>
-    <div class="eyebrow">Kana → Romaji → Reverse → Kana<span class="version-badge">v0.3</span></div>
+    <div class="eyebrow">Kana → Romaji → Reverse → Kana<span class="version-badge">v0.4</span></div>
     <h1>反転コト<span>ダマ</span>機</h1>
     <div class="sub">ひらがな・カタカナをローマ字にして、まるごとひっくり返して、<br>読めるところまで読み方を組みなおすヨ。</div>
   </header>
@@ -267,6 +285,16 @@
         <button data-mode="hira" class="active">ひらがな出力</button>
         <button data-mode="kata">カタカナ出力</button>
       </div>
+    </div>
+    <div class="row checkbox-row">
+      <label class="checkbox-label">
+        <input type="checkbox" id="ignoreDakuten">
+        濁音・半濁音を無視して反転チェック
+      </label>
+      <label class="checkbox-label">
+        <input type="checkbox" id="tsuSokuon">
+        小さい「っ」は「つ」として反転チェック
+      </label>
     </div>
   </div>
 
@@ -452,6 +480,8 @@
   });
 
   input.addEventListener("input", render);
+  document.getElementById("ignoreDakuten").addEventListener("change", render);
+  document.getElementById("tsuSokuon").addEventListener("change", render);
 
   function render(){
     const val = input.value.trim();
@@ -462,9 +492,13 @@
 
     const { romaji, hadUnknown } = kanaToRomaji(val);
     const directReversed = Array.from(val).reverse().join("");
-    const isFullPalindrome = val.length > 1 && val === directReversed;
-    const mirroredInputHtml = buildMirrorHtml(val);
-    const mirroredReversedHtml = buildMirrorHtml(directReversed);
+    const matchOpts = {
+      ignoreDakuten: document.getElementById("ignoreDakuten").checked,
+      tsuSokuon: document.getElementById("tsuSokuon").checked
+    };
+    const isFullPalindrome = isPalindromeWithOpts(val, matchOpts);
+    const mirroredInputHtml = buildMirrorHtml(val, matchOpts);
+    const mirroredReversedHtml = buildMirrorHtml(directReversed, matchOpts);
     const reversed = Array.from(romaji).reverse().join("");
     const { text: kanaResult, hadFallback } = romajiToKana(reversed, outMode);
 
@@ -502,19 +536,47 @@
   }
 
   // 自分自身をひっくり返した時、同じ位置になる文字を光らせるヨ
-  function buildMirrorHtml(str){
+  const DAKUTEN_MAP = {
+    "が":"か","ぎ":"き","ぐ":"く","げ":"け","ご":"こ",
+    "ざ":"さ","じ":"し","ず":"す","ぜ":"せ","ぞ":"そ",
+    "だ":"た","ぢ":"ち","づ":"つ","で":"て","ど":"と",
+    "ば":"は","び":"ひ","ぶ":"ふ","べ":"へ","ぼ":"ほ",
+    "ぱ":"は","ぴ":"ひ","ぷ":"ふ","ぺ":"へ","ぽ":"ほ"
+  };
+  // カタカナ版もつくるヨ（ひらがなから+0x60）
+  for (const k in Object.assign({}, DAKUTEN_MAP)){
+    const kataKey = String.fromCharCode(k.charCodeAt(0) + 0x60);
+    const kataVal = String.fromCharCode(DAKUTEN_MAP[k].charCodeAt(0) + 0x60);
+    DAKUTEN_MAP[kataKey] = kataVal;
+  }
+
+  function normalizeForMatch(c, opts){
+    let out = c;
+    if (opts.ignoreDakuten && DAKUTEN_MAP[out]) out = DAKUTEN_MAP[out];
+    if (opts.tsuSokuon && (out === "っ" || out === "ッ")) out = (out === "ッ") ? "ツ" : "つ";
+    return out;
+  }
+
+  function buildMirrorHtml(str, opts){
     const chars = Array.from(str);
     const len = chars.length;
+    const normChars = chars.map(c => normalizeForMatch(c, opts));
     let html = "";
     for (let i = 0; i < len; i++){
       const c = chars[i];
-      const mirrorChar = chars[len - 1 - i];
-      const isMatch = len > 1 && c === mirrorChar;
+      const isMatch = len > 1 && normChars[i] === normChars[len - 1 - i];
       html += isMatch
         ? `<span class="mirror-match">${escapeHtml(c)}</span>`
         : escapeHtml(c);
     }
     return html;
+  }
+
+  function isPalindromeWithOpts(str, opts){
+    if (str.length <= 1) return false;
+    const chars = Array.from(str).map(c => normalizeForMatch(c, opts));
+    const rev = chars.slice().reverse();
+    return chars.join("") === rev.join("");
   }
 
 })();
